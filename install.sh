@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+show_banner() {
+  echo "    _    ____   ___  ____    _    ____       ____  _____ ____          _   _   _ _____ ___  ____  ____  "
+  echo "   / \  / ___| / _ \/ ___|  / \  |  _ \     |  _ \| ____| __ )        / \ | | | |_   _/ _ \|  _ \|  _ \ "
+  echo "  / _ \ \___ \| | | \___ \ / _ \ | |_) |____| | | |  _| |  _ \ _____ / _ \| | | | | || | | | |_) | |_) |"
+  echo " / ___ \ ___) | |_| |___) / ___ \|  _ <_____| |_| | |___| |_) |_____/ ___ \ |_| | | || |_| |  _ <|  _ < "
+  echo "/_/   \_\____/ \___/|____/_/   \_\_| \_\    |____/|_____|____/     /_/   \_\___/  |_| \___/|_| \_\_| \_\\"
+  echo ""
+  echo "            Media Automation Stack — Radarr, Prowlarr, qBit & Media Server"
+  echo ""
+}
+
+show_banner
+
 SERVARR_SCRIPT_URL="https://raw.githubusercontent.com/Servarr/Wiki/master/servarr/servarr-install-script.sh"
 JELLYFIN_INSTALL_URL="https://repo.jellyfin.org/install-debuntu.sh"
 PLEX_KEY_URL="https://repo.plex.tv/plexmediaserver/PlexSign.v2.key"
@@ -15,7 +28,7 @@ require_root() {
     echo "  bash install.sh"
     echo ""
     echo "Or, if sudo is already configured:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-rrmoviestack/main/install.sh | sudo bash"
+    echo "  curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-deb-autorr/main/install.sh | sudo bash"
     exit 1
   fi
 }

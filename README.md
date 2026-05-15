@@ -1,4 +1,12 @@
-# asosar-rrmoviestack
+```
+    _    ____   ___  ____    _    ____       ____  _____ ____          _   _   _ _____ ___  ____  ____  
+   / \  / ___| / _ \/ ___|  / \  |  _ \     |  _ \| ____| __ )        / \ | | | |_   _/ _ \|  _ \|  _ \ 
+  / _ \ \___ \| | | \___ \ / _ \ | |_) |____| | | |  _| |  _ \ _____ / _ \| | | | | || | | | |_) | |_) |
+ / ___ \ ___) | |_| |___) / ___ \|  _ <_____| |_| | |___| |_) |_____/ ___ \ |_| | | || |_| |  _ <|  _ < 
+/_/   \_\____/ \___/|____/_/   \_\_| \_\    |____/|_____|____/     /_/   \_\___/  |_| \___/|_| \_\_| \_\
+```
+
+# asosar-deb-autorr
 
 Interactive Debian installer for a movie automation stack:
 
@@ -14,14 +22,14 @@ Log in as `root`, then run:
 ```bash
 apt update
 apt install -y curl
-curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-rrmoviestack/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-deb-autorr/main/install.sh -o install.sh
 bash install.sh
 ```
 
 If `sudo` is already configured, you can run it directly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-rrmoviestack/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-deb-autorr/main/install.sh | sudo bash
 ```
 
 ## What The Script Does
