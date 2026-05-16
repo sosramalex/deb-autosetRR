@@ -22,14 +22,14 @@ Log in as `root`, then run:
 ```bash
 apt update
 apt install -y curl
-curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-deb-autorr/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/alsosar/asosar-deb-autorr/main/install.sh -o install.sh
 bash install.sh
 ```
 
 If `sudo` is already configured, you can run it directly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/asosar2195/asosar-deb-autorr/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/alsosar/asosar-deb-autorr/main/install.sh | sudo bash
 ```
 
 ## What The Script Does
