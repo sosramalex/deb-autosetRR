@@ -28,7 +28,7 @@ require_root() {
     echo "  bash install.sh"
     echo ""
     echo "Or, if sudo is already configured:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/alsosar/alsosar-deb-autorr/main/install.sh | sudo bash"
+    echo "  curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autorr/main/install.sh | sudo bash"
     exit 1
   fi
 }
