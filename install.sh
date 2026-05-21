@@ -132,6 +132,26 @@ install_plex() {
     dpkg -i "${plex_deb}" || DEBIAN_FRONTEND=noninteractive apt-get install -y -f
     rm -f "${plex_deb}"
   }
+
+  echo "Waiting for Plex to start..."
+  for i in $(seq 1 15); do
+    if curl -s http://localhost:32400/myplex/account >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+
+  echo ""
+  echo "Plex needs to be claimed. Go to https://plex.tv/claim and copy your claim token."
+  read -r -p "Paste your Plex claim token (or press Enter to skip): " PLEX_CLAIM_TOKEN
+  if [[ -n "${PLEX_CLAIM_TOKEN}" ]]; then
+    curl -s -X POST \
+      -H "Content-Type: application/json" \
+      -d "{\"claim-token\": \"${PLEX_CLAIM_TOKEN}\"}" \
+      http://localhost:32400/myplex/claim && echo "Plex claimed successfully!"
+  else
+    echo "Skipping claim. Claim later at http://$(hostname -I | awk '{print $1}'):32400/web"
+  fi
 }
 
 install_jellyfin() {
