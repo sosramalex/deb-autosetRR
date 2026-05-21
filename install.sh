@@ -141,8 +141,17 @@ install_plex() {
     sleep 2
   done
 
+  claim_plex_server
+}
+
+claim_plex_server() {
+  if ! systemctl is-active --quiet plexmediaserver 2>/dev/null; then
+    echo "Plex is not running. Start it first with: systemctl start plexmediaserver"
+    return 1
+  fi
+
   echo ""
-  echo "Plex needs to be claimed. Go to https://plex.tv/claim and copy your claim token."
+  echo "Go to https://plex.tv/claim and copy your claim token."
   read -r -p "Paste your Plex claim token (or press Enter to skip): " PLEX_CLAIM_TOKEN
   if [[ -n "${PLEX_CLAIM_TOKEN}" ]]; then
     curl -s -X POST \
@@ -203,6 +212,13 @@ print_summary() {
   echo "Jellyfin:    http://${ip_local}:8096"
 }
 
+show_usage() {
+  echo "Usage: bash install.sh [--claim-plex]"
+  echo ""
+  echo "  (no args)     Full install of the media stack"
+  echo "  --claim-plex  Claim an already-installed Plex server"
+}
+
 main() {
   require_root
   require_debian_apt
@@ -215,4 +231,20 @@ main() {
   print_summary
 }
 
-main "$@"
+case "${1:-}" in
+  --claim-plex)
+    require_root
+    claim_plex_server
+    ;;
+  -h|--help)
+    show_usage
+    ;;
+  "")
+    main
+    ;;
+  *)
+    echo "Unknown option: $1"
+    show_usage
+    exit 1
+    ;;
+esac
