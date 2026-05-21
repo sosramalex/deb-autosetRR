@@ -224,25 +224,30 @@ main() {
   print_summary
 }
 
-echo ""
-echo "Choose an option:"
-select action in "Install full media stack" "Claim Plex server" "Exit"; do
-  case "${REPLY}" in
-    1)
-      main
-      break
-      ;;
-    2)
-      require_root
-      claim_plex_server
-      break
-      ;;
-    3)
-      echo "Exiting."
-      exit 0
-      ;;
-    *)
-      echo "Invalid choice. Enter 1, 2, or 3."
-      ;;
-  esac
-done
+if [[ "${1:-}" == "--claim-plex" ]]; then
+  require_root
+  claim_plex_server
+else
+  echo ""
+  echo "Choose an option:"
+  select action in "Install full media stack" "Claim Plex server" "Exit"; do
+    case "${REPLY}" in
+      1)
+        main
+        break
+        ;;
+      2)
+        require_root
+        claim_plex_server
+        break
+        ;;
+      3)
+        echo "Exiting."
+        exit 0
+        ;;
+      *)
+        echo "Invalid choice. Enter 1, 2, or 3."
+        ;;
+    esac
+  done
+fi
