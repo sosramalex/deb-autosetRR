@@ -212,13 +212,6 @@ print_summary() {
   echo "Jellyfin:    http://${ip_local}:8096"
 }
 
-show_usage() {
-  echo "Usage: bash install.sh [--claim-plex]"
-  echo ""
-  echo "  (no args)     Full install of the media stack"
-  echo "  --claim-plex  Claim an already-installed Plex server"
-}
-
 main() {
   require_root
   require_debian_apt
@@ -231,20 +224,25 @@ main() {
   print_summary
 }
 
-case "${1:-}" in
-  --claim-plex)
-    require_root
-    claim_plex_server
-    ;;
-  -h|--help)
-    show_usage
-    ;;
-  "")
-    main
-    ;;
-  *)
-    echo "Unknown option: $1"
-    show_usage
-    exit 1
-    ;;
-esac
+echo ""
+echo "Choose an option:"
+select action in "Install full media stack" "Claim Plex server" "Exit"; do
+  case "${REPLY}" in
+    1)
+      main
+      break
+      ;;
+    2)
+      require_root
+      claim_plex_server
+      break
+      ;;
+    3)
+      echo "Exiting."
+      exit 0
+      ;;
+    *)
+      echo "Invalid choice. Enter 1, 2, or 3."
+      ;;
+  esac
+done
