@@ -16,8 +16,9 @@ show_banner
 
 SERVARR_SCRIPT_URL="https://raw.githubusercontent.com/Servarr/Wiki/master/servarr/servarr-install-script.sh"
 JELLYFIN_INSTALL_URL="https://repo.jellyfin.org/install-debuntu.sh"
-PLEX_KEY_URL="https://repo.plex.tv/plexmediaserver/PlexSign.v2.key"
+PLEX_KEY_URL="https://downloads.plex.tv/plex-keys/PlexSign.v2.key"
 PLEX_REPO_URL="https://repo.plex.tv/deb/"
+PLEX_KEYRING="/etc/apt/keyrings/plexmediaserver.v2.gpg"
 QB_USER="qbittorrent"
 QB_GROUP="media"
 
@@ -41,8 +42,9 @@ require_debian_apt() {
 }
 
 install_base_packages() {
-  echo "Updating package lists..."
+  echo "Updating package lists and upgrading system..."
   apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 
   echo "Installing base dependencies..."
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -104,18 +106,32 @@ EOF
 
   systemctl daemon-reload
   systemctl enable --now qbittorrent-nox.service
+
+  sleep 3
+  QB_TEMP_PASS=$(journalctl -u qbittorrent-nox -n 30 --no-pager 2>/dev/null \
+    | grep -oP 'password is set to: \K.*' \
+    | head -1) || QB_TEMP_PASS=""
+  export QB_TEMP_PASS
 }
 
 install_plex() {
   echo "Installing Plex Media Server..."
   install -d -m 0755 /etc/apt/keyrings
-  rm -f /etc/apt/keyrings/plexmediaserver.gpg
-  curl -fsSL "${PLEX_KEY_URL}" | gpg --dearmor -o /etc/apt/keyrings/plexmediaserver.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/plexmediaserver.gpg] ${PLEX_REPO_URL} public main" \
+  rm -f /etc/apt/sources.list.d/plexmediaserver.list
+  curl -fsSL "${PLEX_KEY_URL}" | gpg --dearmor -o "${PLEX_KEYRING}"
+  echo "deb [arch=amd64 signed-by=${PLEX_KEYRING}] ${PLEX_REPO_URL} public main" \
     >/etc/apt/sources.list.d/plexmediaserver.list
 
   apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get install -y plexmediaserver
+  DEBIAN_FRONTEND=noninteractive apt-get install -y plexmediaserver || {
+    echo "Plex install via repo failed. Trying direct .deb download..."
+    local plex_deb
+    plex_deb="$(mktemp)"
+    curl -fsSL -o "${plex_deb}" \
+      "https://downloads.plex.tv/plex-media-server-new/1.41.6.9663-ce7c0d806/plexmediaserver_1.41.6.9663-ce7c0d806_amd64.deb"
+    dpkg -i "${plex_deb}" || DEBIAN_FRONTEND=noninteractive apt-get install -y -f
+    rm -f "${plex_deb}"
+  }
 }
 
 install_jellyfin() {
@@ -158,6 +174,11 @@ print_summary() {
   echo "Radarr:      http://${ip_local}:7878"
   echo "Prowlarr:    http://${ip_local}:9696"
   echo "qBittorrent: http://${ip_local}:8080"
+  if [[ -n "${QB_TEMP_PASS:-}" ]]; then
+    echo "qBit Pass:   ${QB_TEMP_PASS}  (change on first login)"
+  else
+    echo "qBit Pass:   check 'journalctl -u qbittorrent-nox -n 20'"
+  fi
   echo "Plex:        http://${ip_local}:32400/web"
   echo "Jellyfin:    http://${ip_local}:8096"
 }
