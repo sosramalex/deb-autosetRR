@@ -53,7 +53,8 @@ install_base_packages() {
     gnupg \
     libsqlite3-0 \
     sqlite3 \
-    wget
+    wget \
+    whiptail
 }
 
 install_servarr_app() {
@@ -227,27 +228,19 @@ install_jellyfin() {
 }
 
 choose_media_server() {
-  echo ""
-  echo "Choose a media server to install:"
-  select media_server in "Plex Media Server" "Jellyfin Server" "Skip media server"; do
-    case "${REPLY}" in
-      1)
-        install_plex
-        break
-        ;;
-      2)
-        install_jellyfin
-        break
-        ;;
-      3)
-        echo "Skipping media server installation."
-        break
-        ;;
-      *)
-        echo "Invalid choice. Enter 1, 2, or 3."
-        ;;
-    esac
-  done
+  local choice
+  choice=$(whiptail --menu --title "Media Server" \
+    "Choose a media server to install:" \
+    12 50 3 \
+    "1" "Plex Media Server" \
+    "2" "Jellyfin Server" \
+    "3" "Skip media server" \
+    3>&1 1>&2 2>&3) || return
+  case "$choice" in
+    1) install_plex ;;
+    2) install_jellyfin ;;
+    3) echo "Skipping media server installation." ;;
+  esac
 }
 
 print_summary() {
@@ -526,49 +519,29 @@ elif [[ "${1:-}" == "--fix-perms" ]]; then
 elif [[ "${1:-}" == "--purge" ]]; then
   purge_all
 else
-  echo ""
-  echo "Choose an option:"
-  select action in \
-    "Install full media stack (Debian)" \
-    "Install full media stack (OMV)" \
-    "Apply OMV layout (existing install)" \
-    "Fix permissions on existing OMV folders" \
-    "Claim Plex server" \
-    "Purge everything and start fresh" \
-    "Exit"; do
-    case "${REPLY}" in
-      1)
-        main
-        break
-        ;;
-      2)
-        main_omv
-        break
-        ;;
-      3)
-        apply_omv_layout_existing
-        break
-        ;;
-      4)
-        fix_permissions_existing
-        break
-        ;;
-      5)
-        require_root
-        claim_plex_server
-        break
-        ;;
-      6)
-        purge_all
-        break
-        ;;
-      7)
-        echo "Exiting."
-        exit 0
-        ;;
-      *)
-        echo "Invalid choice. Enter 1-7."
-        ;;
+  while true; do
+    local choice
+    choice=$(whiptail --menu --title "Deb Autorr" \
+      "Media Automation Stack — Radarr, Prowlarr, qBit & Media Server\n\nChoose an option:" \
+      18 65 7 \
+      "1" "Install full media stack (Debian)" \
+      "2" "Install full media stack (OMV)" \
+      "3" "Apply OMV layout (existing install)" \
+      "4" "Fix permissions on existing OMV folders" \
+      "5" "Claim Plex server" \
+      "6" "Purge everything and start fresh" \
+      "7" "Exit" \
+      3>&1 1>&2 2>&3) || exit 0
+    case "$choice" in
+      1) main ;;
+      2) main_omv ;;
+      3) apply_omv_layout_existing ;;
+      4) fix_permissions_existing ;;
+      5) require_root; claim_plex_server ;;
+      6) purge_all ;;
+      7) echo "Exiting."; exit 0 ;;
     esac
+    echo ""
+    read -rp "Press Enter to continue..."
   done
 fi
