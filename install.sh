@@ -200,13 +200,16 @@ except:
 
 claim_plex_server() {
   if ! systemctl is-active --quiet plexmediaserver 2>/dev/null; then
-    echo "Plex is not running. Start it first with: systemctl start plexmediaserver"
+    whiptail --msgbox --title "Plex Not Running" \
+      "Start it first with: systemctl start plexmediaserver" 7 50
     return 1
   fi
 
-  echo ""
-  echo "Go to https://plex.tv/claim and copy your claim token."
-  read -r -p "Paste your Plex claim token (or press Enter to skip): " PLEX_CLAIM_TOKEN
+  local PLEX_CLAIM_TOKEN
+  PLEX_CLAIM_TOKEN=$(whiptail --inputbox --title "Claim Plex" \
+    "Go to https://plex.tv/claim and copy your claim token.\n\nPaste it below (or leave empty to skip):" \
+    10 60 3>&1 1>&2 2>&3) || return 1
+
   if [[ -n "${PLEX_CLAIM_TOKEN}" ]]; then
     local response
     response=$(curl -s -X POST \
@@ -214,13 +217,14 @@ claim_plex_server() {
       -d "{\"claim-token\": \"${PLEX_CLAIM_TOKEN}\"}" \
       http://localhost:32400/myplex/claim)
     if echo "$response" | grep -qi '"claimed"\|success\|true'; then
-      echo "Plex claimed successfully!"
+      whiptail --msgbox --title "Success" "Plex claimed successfully!" 7 40
     else
-      echo "Claim failed. Response: $response"
-      echo "Make sure the token is valid at https://plex.tv/claim"
+      whiptail --msgbox --title "Claim Failed" \
+        "Response: $response\n\nMake sure the token is valid at https://plex.tv/claim" 10 55
     fi
   else
-    echo "Skipping claim. Claim later at http://$(hostname -I | awk '{print $1}'):32400/web"
+    whiptail --msgbox --title "Skipped" \
+      "Claim later at http://$(hostname -I | awk '{print $1}'):32400/web" 7 55
   fi
 }
 
@@ -273,43 +277,36 @@ print_summary() {
 }
 
 setup_omv_storage() {
-  echo "Scanning for OMV data drives..."
   local drives=()
   while IFS= read -r dir; do
     drives+=("$dir")
   done < <(find /srv -maxdepth 1 -name 'dev-disk-by-uuid-*' 2>/dev/null | sort)
 
   if [[ ${#drives[@]} -eq 0 ]]; then
-    echo "No OMV drives found at /srv/dev-disk-by-uuid-*"
-    read -r -p "Enter your storage path manually: " DATA_PATH
+    DATA_PATH=$(whiptail --inputbox --title "Storage Path" \
+      "No OMV drives found at /srv/dev-disk-by-uuid-*\n\nEnter your storage path manually:" \
+      10 60 "/srv/data" 3>&1 1>&2 2>&3) || DATA_PATH="/srv/data"
     if [[ -z "$DATA_PATH" ]]; then
-      echo "No path given. Using /srv/data"
       DATA_PATH="/srv/data"
     fi
   else
-    echo "Available drives:"
+    local menu_items=()
     for i in "${!drives[@]}"; do
       local dev
       dev="$(readlink -f "${drives[$i]}")"
-      echo "  $((i+1))) ${drives[$i]} ($dev)"
+      menu_items+=("$((i+1))" "${drives[$i]}")
     done
-    read -r -p "Select drive number [1]: " sel
-    sel="${sel:-1}"
-    if [[ "$sel" -ge 1 && "$sel" -le "${#drives[@]}" ]]; then
-      DATA_PATH="${drives[$((sel-1))]}"
-    else
-      echo "Invalid. Using ${drives[0]}"
-      DATA_PATH="${drives[0]}"
-    fi
+    local sel
+    sel=$(whiptail --menu --title "Select Drive" \
+      "Available drives:" 15 65 "${#drives[@]}" \
+      "${menu_items[@]}" 3>&1 1>&2 2>&3) || sel=1
+    DATA_PATH="${drives[$((sel-1))]}"
   fi
 
   DOWNLOADS_PATH="${DATA_PATH}/downloads"
   MEDIA_PATH="${DATA_PATH}/media/Movies"
 
   mkdir -p "$DOWNLOADS_PATH" "$MEDIA_PATH"
-  echo "Created:"
-  echo "  Downloads: $DOWNLOADS_PATH"
-  echo "  Movies:    $MEDIA_PATH"
   fix_omv_permissions
 }
 
@@ -482,12 +479,10 @@ fix_permissions_existing() {
 
 purge_all() {
   require_root
-  echo ""
-  echo "⚠️  This will REMOVE all installed services and their config data:"
-  echo "    - Radarr, Prowlarr, qBittorrent, Plex, Jellyfin"
-  read -r -p "Type 'yes' to confirm: " confirm
-  if [[ "$confirm" != "yes" ]]; then
-    echo "Aborted."
+
+  if ! whiptail --yesno --title "Confirm Purge" \
+    "This will REMOVE all installed services and their config data:\n\n\
+    - Radarr, Prowlarr, qBittorrent, Plex, Jellyfin\n\nContinue?" 12 55; then
     return
   fi
 
