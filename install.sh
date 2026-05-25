@@ -129,6 +129,14 @@ install_plex() {
   echo "deb [signed-by=${PLEX_KEYRING}] ${PLEX_REPO_URL} public main" \
     >/etc/apt/sources.list.d/plex.list
 
+  # Pre-create plex user and data directory to avoid postinst Permission denied
+  if ! getent passwd plex &>/dev/null; then
+    adduser --system --no-create-home --ingroup nogroup plex 2>/dev/null || useradd -r -s /usr/sbin/nologin -g nogroup plex
+  fi
+  mkdir -p /var/lib/plexmediaserver
+  chown -R plex:nogroup /var/lib/plexmediaserver
+  chmod 755 /var/lib/plexmediaserver
+
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y plexmediaserver || {
     echo "Repo install failed. Falling back to latest direct .deb..."
