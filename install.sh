@@ -423,20 +423,7 @@ apply_omv_layout_existing() {
 fix_permissions_existing() {
   require_root
   echo "Fix permissions for existing OMV layout..."
-  read -r -p "Enter your storage path [/srv/dev-disk-by-uuid-*]: " DATA_PATH
-  if [[ -z "$DATA_PATH" ]]; then
-    local found
-    found="$(find /srv -maxdepth 1 -name 'dev-disk-by-uuid-*' | head -1)" || true
-    if [[ -n "$found" ]]; then
-      DATA_PATH="$found"
-      echo "Using: $DATA_PATH"
-    else
-      echo "No path given. Aborting."
-      return 1
-    fi
-  fi
-  DOWNLOADS_PATH="${DATA_PATH}/downloads"
-  MEDIA_PATH="${DATA_PATH}/media/Movies"
+  setup_omv_storage
   fix_omv_permissions
 }
 
