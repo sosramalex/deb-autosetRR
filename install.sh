@@ -509,7 +509,8 @@ purge_all() {
   echo "Removing config and data directories..."
   rm -rf /var/lib/radarr /var/lib/prowlarr /var/lib/qbittorrent-nox /var/lib/plexmediaserver /var/lib/jellyfin
   rm -rf /home/radarr /home/prowlarr /home/qbittorrent
-  rm -rf /etc/apt/sources.list.d/plexmediaserver.list
+  rm -f /etc/apt/sources.list.d/plex*.list /etc/apt/sources.list.d/plex*.sources
+  rm -f /etc/apt/keyrings/plexmediaserver.v2.gpg
 
   echo ""
   echo "Purge complete. The OMV storage layout on your data drive was preserved."
