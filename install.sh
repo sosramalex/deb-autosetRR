@@ -210,6 +210,114 @@ print_summary() {
   fi
   echo "Plex:        http://${ip_local}:32400/web"
   echo "Jellyfin:    http://${ip_local}:8096"
+  if [[ "${OMV_MODE:-0}" -eq 1 ]]; then
+    echo ""
+    echo "OMV Storage Layout:"
+    echo "  Downloads: ${DOWNLOADS_PATH:-}"
+    echo "  Movies:    ${MEDIA_PATH:-}"
+    echo "  Point Plex library to: ${DATA_PATH:-}/media"
+  fi
+}
+
+setup_omv_storage() {
+  echo "Scanning for OMV data drives..."
+  local drives=()
+  while IFS= read -r dir; do
+    drives+=("$dir")
+  done < <(find /srv -maxdepth 1 -name 'dev-disk-by-uuid-*' 2>/dev/null | sort)
+
+  if [[ ${#drives[@]} -eq 0 ]]; then
+    echo "No OMV drives found at /srv/dev-disk-by-uuid-*"
+    read -r -p "Enter your storage path manually: " DATA_PATH
+    if [[ -z "$DATA_PATH" ]]; then
+      echo "No path given. Using /srv/data"
+      DATA_PATH="/srv/data"
+    fi
+  else
+    echo "Available drives:"
+    for i in "${!drives[@]}"; do
+      local dev
+      dev="$(readlink -f "${drives[$i]}")"
+      echo "  $((i+1))) ${drives[$i]} ($dev)"
+    done
+    read -r -p "Select drive number [1]: " sel
+    sel="${sel:-1}"
+    if [[ "$sel" -ge 1 && "$sel" -le "${#drives[@]}" ]]; then
+      DATA_PATH="${drives[$((sel-1))]}"
+    else
+      echo "Invalid. Using ${drives[0]}"
+      DATA_PATH="${drives[0]}"
+    fi
+  fi
+
+  DOWNLOADS_PATH="${DATA_PATH}/downloads"
+  MEDIA_PATH="${DATA_PATH}/media/Movies"
+
+  mkdir -p "$DOWNLOADS_PATH" "$MEDIA_PATH"
+  chmod 755 "$DOWNLOADS_PATH" "$MEDIA_PATH"
+  echo "Created:"
+  echo "  Downloads: $DOWNLOADS_PATH"
+  echo "  Movies:    $MEDIA_PATH"
+}
+
+configure_qbit_download_path() {
+  local path="$1"
+  local qb_conf="/var/lib/qbittorrent-nox/qBittorrent/qBittorrent.conf"
+
+  systemctl stop qbittorrent-nox.service 2>/dev/null || true
+  mkdir -p "$(dirname "$qb_conf")"
+
+  if [[ -f "$qb_conf" ]]; then
+    sed -i "s|^Downloads\\\\SavePath=.*|Downloads\\\\SavePath=${path}|" "$qb_conf"
+  else
+    cat > "$qb_conf" <<EOF
+[Preferences]
+Downloads\\SavePath=${path}
+Downloads\\PreAllocation=false
+Connection\\PortRangeMin=6881
+EOF
+  fi
+
+  chown -R "${QB_USER}:${QB_GROUP}" "/var/lib/qbittorrent-nox"
+  systemctl start qbittorrent-nox.service
+  echo "qBittorrent downloads path set to: $path"
+}
+
+configure_radarr_root_folder() {
+  local path="$1"
+  local radarr_conf
+
+  for candidate in "/var/lib/radarr/config.xml" "/home/radarr/.config/Radarr/config.xml" "/opt/Radarr/config.xml"; do
+    if [[ -f "$candidate" ]]; then
+      radarr_conf="$candidate"
+      break
+    fi
+  done
+
+  if [[ -z "${radarr_conf:-}" ]]; then
+    echo "Radarr config not found at any known path. Set root folder manually:"
+    echo "  Settings → Media Management → Root Folders → Add: $path"
+    return
+  fi
+
+  local api_key
+  api_key=$(grep -oP '(?<=<ApiKey>)[^<]+' "$radarr_conf" 2>/dev/null) || true
+  if [[ -z "$api_key" ]]; then
+    echo "Radarr API key not found in config. Set root folder manually."
+    return
+  fi
+
+  for i in $(seq 1 12); do
+    if curl -s "http://localhost:7878/api/v3/system/status?apiKey=${api_key}" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 5
+  done
+
+  curl -s -X POST "http://localhost:7878/api/v3/rootfolder?apiKey=${api_key}" \
+    -H "Content-Type: application/json" \
+    -d "{\"path\":\"${path}\"}" >/dev/null 2>&1 && echo "Radarr root folder added: $path" \
+    || echo "Could not add Radarr root folder. Add manually: Settings → Media Management → Root Folders"
 }
 
 main() {
@@ -224,29 +332,58 @@ main() {
   print_summary
 }
 
+main_omv() {
+  OMV_MODE=1
+  require_root
+  require_debian_apt
+  install_base_packages
+
+  setup_omv_storage
+
+  install_servarr_app "Prowlarr" "2"
+  install_servarr_app "Radarr" "3"
+  install_qbittorrent
+
+  configure_qbit_download_path "$DOWNLOADS_PATH"
+  configure_radarr_root_folder "$MEDIA_PATH"
+
+  choose_media_server
+  print_summary
+
+  echo ""
+  echo "OMV Layout:"
+  echo "  qBittorrent saves to: $DOWNLOADS_PATH"
+  echo "  Radarr library:      $MEDIA_PATH"
+  echo "  Point Plex to:       ${DATA_PATH}/media"
+}
+
 if [[ "${1:-}" == "--claim-plex" ]]; then
   require_root
   claim_plex_server
 else
   echo ""
   echo "Choose an option:"
-  select action in "Install full media stack" "Claim Plex server" "Exit"; do
+  select action in "Install full media stack (Debian)" "Install full media stack (OMV)" "Claim Plex server" "Exit"; do
     case "${REPLY}" in
       1)
         main
         break
         ;;
       2)
+        main_omv
+        break
+        ;;
+      3)
         require_root
         claim_plex_server
         break
         ;;
-      3)
+      4)
         echo "Exiting."
         exit 0
         ;;
       *)
-        echo "Invalid choice. Enter 1, 2, or 3."
+        echo "Invalid choice. Enter 1, 2, 3, or 4."
         ;;
     esac
   done
