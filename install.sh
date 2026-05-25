@@ -357,13 +357,76 @@ main_omv() {
   echo "  Point Plex to:       ${DATA_PATH}/media"
 }
 
+apply_omv_layout_existing() {
+  require_root
+  echo "This will NOT install any packages — only apply the OMV storage layout."
+  setup_omv_storage
+
+  if systemctl is-active --quiet qbittorrent-nox 2>/dev/null; then
+    configure_qbit_download_path "$DOWNLOADS_PATH"
+  else
+    echo "qBittorrent not running. Set download path manually after starting it."
+  fi
+
+  if systemctl is-active --quiet radarr 2>/dev/null; then
+    configure_radarr_root_folder "$MEDIA_PATH"
+  else
+    echo "Radarr not running. Add root folder manually in Settings → Media Management."
+  fi
+
+  echo ""
+  echo "OMV Layout applied:"
+  echo "  Downloads: $DOWNLOADS_PATH"
+  echo "  Movies:    $MEDIA_PATH"
+}
+
+purge_all() {
+  require_root
+  echo ""
+  echo "⚠️  This will REMOVE all installed services and their config data:"
+  echo "    - Radarr, Prowlarr, qBittorrent, Plex, Jellyfin"
+  read -r -p "Type 'yes' to confirm: " confirm
+  if [[ "$confirm" != "yes" ]]; then
+    echo "Aborted."
+    return
+  fi
+
+  echo "Stopping services..."
+  for svc in radarr prowlarr qbittorrent-nox plexmediaserver jellyfin; do
+    systemctl stop "$svc" 2>/dev/null || true
+    systemctl disable "$svc" 2>/dev/null || true
+  done
+
+  echo "Removing packages..."
+  DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y \
+    radarr prowlarr qbittorrent-nox plexmediaserver jellyfin 2>/dev/null || true
+
+  echo "Removing config and data directories..."
+  rm -rf /var/lib/radarr /var/lib/prowlarr /var/lib/qbittorrent-nox /var/lib/plexmediaserver /var/lib/jellyfin
+  rm -rf /home/radarr /home/prowlarr /home/qbittorrent
+  rm -rf /etc/apt/sources.list.d/plexmediaserver.list
+
+  echo ""
+  echo "Purge complete. The OMV storage layout on your data drive was preserved."
+}
+
 if [[ "${1:-}" == "--claim-plex" ]]; then
   require_root
   claim_plex_server
+elif [[ "${1:-}" == "--apply-omv-layout" ]]; then
+  apply_omv_layout_existing
+elif [[ "${1:-}" == "--purge" ]]; then
+  purge_all
 else
   echo ""
   echo "Choose an option:"
-  select action in "Install full media stack (Debian)" "Install full media stack (OMV)" "Claim Plex server" "Exit"; do
+  select action in \
+    "Install full media stack (Debian)" \
+    "Install full media stack (OMV)" \
+    "Apply OMV layout (existing install)" \
+    "Claim Plex server" \
+    "Purge everything and start fresh" \
+    "Exit"; do
     case "${REPLY}" in
       1)
         main
@@ -374,16 +437,24 @@ else
         break
         ;;
       3)
+        apply_omv_layout_existing
+        break
+        ;;
+      4)
         require_root
         claim_plex_server
         break
         ;;
-      4)
+      5)
+        purge_all
+        break
+        ;;
+      6)
         echo "Exiting."
         exit 0
         ;;
       *)
-        echo "Invalid choice. Enter 1, 2, 3, or 4."
+        echo "Invalid choice. Enter 1-6."
         ;;
     esac
   done
