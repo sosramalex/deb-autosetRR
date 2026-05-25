@@ -154,10 +154,17 @@ claim_plex_server() {
   echo "Go to https://plex.tv/claim and copy your claim token."
   read -r -p "Paste your Plex claim token (or press Enter to skip): " PLEX_CLAIM_TOKEN
   if [[ -n "${PLEX_CLAIM_TOKEN}" ]]; then
-    curl -s -X POST \
+    local response
+    response=$(curl -s -X POST \
       -H "Content-Type: application/json" \
       -d "{\"claim-token\": \"${PLEX_CLAIM_TOKEN}\"}" \
-      http://localhost:32400/myplex/claim && echo "Plex claimed successfully!"
+      http://localhost:32400/myplex/claim)
+    if echo "$response" | grep -qi '"claimed"\|success\|true'; then
+      echo "Plex claimed successfully!"
+    else
+      echo "Claim failed. Response: $response"
+      echo "Make sure the token is valid at https://plex.tv/claim"
+    fi
   else
     echo "Skipping claim. Claim later at http://$(hostname -I | awk '{print $1}'):32400/web"
   fi
