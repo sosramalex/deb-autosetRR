@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "[deb-autorr] version d028586 (fix-local-outside-function)" >&2
+
 show_banner() {
   echo "    _    _     ____   ___  ____    _    ____       ____  _____ ____          _   _   _ _____ ___  ____  ____  "
   echo "   / \  | |   / ___| / _ \/ ___|  / \  |  _ \     |  _ \| ____| __ )        / \ | | | |_   _/ _ \|  _ \|  _ \ "
