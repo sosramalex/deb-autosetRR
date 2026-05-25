@@ -520,7 +520,6 @@ elif [[ "${1:-}" == "--purge" ]]; then
   purge_all
 else
   while true; do
-    local choice
     choice=$(whiptail --menu --title "Deb Autorr" \
       "Media Automation Stack — Radarr, Prowlarr, qBit & Media Server\n\nChoose an option:" \
       18 65 7 \
