@@ -254,10 +254,49 @@ setup_omv_storage() {
   MEDIA_PATH="${DATA_PATH}/media/Movies"
 
   mkdir -p "$DOWNLOADS_PATH" "$MEDIA_PATH"
-  chmod 755 "$DOWNLOADS_PATH" "$MEDIA_PATH"
   echo "Created:"
   echo "  Downloads: $DOWNLOADS_PATH"
   echo "  Movies:    $MEDIA_PATH"
+  fix_omv_permissions
+}
+
+fix_omv_permissions() {
+  echo "Setting up permissions..."
+  if ! getent group "${QB_GROUP}" >/dev/null; then
+    groupadd "${QB_GROUP}"
+  fi
+
+  local users=()
+  for u in radarr prowlarr qbittorrent plex; do
+    if id "$u" >/dev/null 2>&1; then
+      usermod -aG "${QB_GROUP}" "$u"
+      users+=("$u")
+    fi
+  done
+
+  if [[ -d "${DOWNLOADS_PATH:-}" ]]; then
+    chown -R "qbittorrent:${QB_GROUP}" "$DOWNLOADS_PATH"
+    chmod -R 775 "$DOWNLOADS_PATH"
+    find "$DOWNLOADS_PATH" -type d -exec chmod g+s {} +
+    echo "  Permissions set: $DOWNLOADS_PATH (qbittorrent:media, 775)"
+  fi
+
+  if [[ -d "${MEDIA_PATH:-}" ]]; then
+    chown -R "radarr:${QB_GROUP}" "$MEDIA_PATH"
+    chmod -R 775 "$MEDIA_PATH"
+    find "$MEDIA_PATH" -type d -exec chmod g+s {} +
+    echo "  Permissions set: $MEDIA_PATH (radarr:media, 775)"
+  fi
+
+  if [[ -d "${DATA_PATH:-}/media" ]]; then
+    chmod -R 755 "${DATA_PATH}/media"
+    echo "  Read permission set: ${DATA_PATH}/media (for Plex scan)"
+  fi
+
+  echo "  Users in '${QB_GROUP}' group: ${users[*]:-none}"
+  echo ""
+  echo "  ⚠️  If Radarr still says 'folder not writable', run this:"
+  echo "       bash install.sh --fix-perms"
 }
 
 configure_qbit_download_path() {
@@ -347,6 +386,7 @@ main_omv() {
   configure_qbit_download_path "$DOWNLOADS_PATH"
   configure_radarr_root_folder "$MEDIA_PATH"
 
+  fix_omv_permissions
   choose_media_server
   print_summary
 
@@ -378,6 +418,26 @@ apply_omv_layout_existing() {
   echo "OMV Layout applied:"
   echo "  Downloads: $DOWNLOADS_PATH"
   echo "  Movies:    $MEDIA_PATH"
+}
+
+fix_permissions_existing() {
+  require_root
+  echo "Fix permissions for existing OMV layout..."
+  read -r -p "Enter your storage path [/srv/dev-disk-by-uuid-*]: " DATA_PATH
+  if [[ -z "$DATA_PATH" ]]; then
+    local found
+    found="$(find /srv -maxdepth 1 -name 'dev-disk-by-uuid-*' | head -1)" || true
+    if [[ -n "$found" ]]; then
+      DATA_PATH="$found"
+      echo "Using: $DATA_PATH"
+    else
+      echo "No path given. Aborting."
+      return 1
+    fi
+  fi
+  DOWNLOADS_PATH="${DATA_PATH}/downloads"
+  MEDIA_PATH="${DATA_PATH}/media/Movies"
+  fix_omv_permissions
 }
 
 purge_all() {
@@ -415,6 +475,8 @@ if [[ "${1:-}" == "--claim-plex" ]]; then
   claim_plex_server
 elif [[ "${1:-}" == "--apply-omv-layout" ]]; then
   apply_omv_layout_existing
+elif [[ "${1:-}" == "--fix-perms" ]]; then
+  fix_permissions_existing
 elif [[ "${1:-}" == "--purge" ]]; then
   purge_all
 else
@@ -424,6 +486,7 @@ else
     "Install full media stack (Debian)" \
     "Install full media stack (OMV)" \
     "Apply OMV layout (existing install)" \
+    "Fix permissions on existing OMV folders" \
     "Claim Plex server" \
     "Purge everything and start fresh" \
     "Exit"; do
@@ -441,20 +504,24 @@ else
         break
         ;;
       4)
+        fix_permissions_existing
+        break
+        ;;
+      5)
         require_root
         claim_plex_server
         break
         ;;
-      5)
+      6)
         purge_all
         break
         ;;
-      6)
+      7)
         echo "Exiting."
         exit 0
         ;;
       *)
-        echo "Invalid choice. Enter 1-6."
+        echo "Invalid choice. Enter 1-7."
         ;;
     esac
   done
