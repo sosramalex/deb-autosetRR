@@ -1,58 +1,70 @@
-```
-
-██████╗░███████╗██████╗░░░░░░░░█████╗░██╗░░░██╗████████╗░█████╗░██████╗░██████╗░
-██╔══██╗██╔════╝██╔══██╗░░░░░░██╔══██╗██║░░░██║╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-██║░░██║█████╗░░██████╦╝█████╗███████║██║░░░██║░░░██║░░░██║░░██║██████╔╝██████╔╝
-██║░░██║██╔══╝░░██╔══██╗╚════╝██╔══██║██║░░░██║░░░██║░░░██║░░██║██╔══██╗██╔══██╗
-██████╔╝███████╗██████╦╝░░░░░░██║░░██║╚██████╔╝░░░██║░░░╚█████╔╝██║░░██║██║░░██║
-╚═════╝░╚══════╝╚═════╝░░░░░░░╚═╝░░╚═╝░╚═════╝░░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝╚═╝░░╚═╝
-```
-
 # alsosar-deb-autorr
 
 Interactive Debian installer for a movie automation stack:
+Radarr, Prowlarr, qBittorrent, Plex/Jellyfin — plus OMV storage layout support.
 
-- Radarr
-- Prowlarr
-- qBittorrent nox
-- Plex Media Server or Jellyfin Server
-
-## Run On Debian
-
-Log in as `root`, then run:
+## Quick Start
 
 ```bash
-apt update
-apt install -y curl
+su -
 curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autorr/main/install.sh -o install.sh
 bash install.sh
 ```
 
-If `sudo` is already configured, you can run it directly:
-
+Or with sudo:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autorr/main/install.sh | sudo bash
 ```
 
-## What The Script Does
+## Menu
 
-1. Installs base dependencies: `ca-certificates`, `curl`, `gnupg`, `lsb-release`, `libsqlite3-0`, `sqlite3`, and `wget`.
-2. Downloads the official Servarr community installer.
-3. Automatically installs Prowlarr.
-4. Automatically installs Radarr.
-5. Installs `qbittorrent-nox` and creates a systemd service for it.
-6. Asks whether to install Plex Media Server, Jellyfin Server, or skip media server installation.
+```
+1) Install full media stack (Debian)
+2) Install full media stack (OMV)
+3) Apply OMV layout (existing install)
+4) Fix permissions on existing OMV folders
+5) Claim Plex server
+6) Purge everything and start fresh
+7) Exit
+```
 
-## Default Web Interfaces
+### Debian (option 1)
+Installs Prowlarr, Radarr, qBittorrent, and your choice of Plex/Jellyfin.
+Services run as their own users, qBittorrent temp password is shown in the summary.
 
-- Radarr: `http://SERVER_IP:7878`
-- Prowlarr: `http://SERVER_IP:9696`
-- qBittorrent: `http://SERVER_IP:8080`
-- Plex: `http://SERVER_IP:32400/web`
-- Jellyfin: `http://SERVER_IP:8096`
+### OMV (option 2)
+Same as Debian plus:
+- Detects `/srv/dev-disk-by-uuid-*` drives and prompts which to use
+- Creates `downloads/` (qBittorrent saves here) and `media/Movies/` (Radarr library)
+- Configures qBittorrent's save path and Radarr's root folder via API
+- Sets group permissions so `radarr`, `qbittorrent`, and `plex` can all access
+
+### Apply OMV layout (option 3)
+Runs only the OMV folder/path/permissions setup on an existing install.
+
+### Fix permissions (option 4)
+Re-applies group ownership and permissions on existing OMV folders.
+Also runnable as `bash install.sh --fix-perms`.
+
+### Claim Plex (option 5)
+Prompts for a claim token from https://plex.tv/claim and claims the server.
+
+### Purge (option 6)
+Removes all services and config data. Preserves your media/downloads on the data drive.
+
+## Default Ports
+
+| Service      | Port |
+|-------------|------|
+| Radarr      | 7878 |
+| Prowlarr    | 9696 |
+| qBittorrent | 8080 |
+| Plex        | 32400 |
+| Jellyfin    | 8096 |
 
 ## Notes
 
-The Servarr installer creates the service users and installs Radarr/Prowlarr under `/opt`.
-
-The qBittorrent service runs as user `qbittorrent` in group `media`.
+- qBittorrent's temp password is shown in the summary after install
+- Plex claim is prompted right after install (or later via option 5)
+- OMV layout uses `media` group with 775 + sgid so all services can share files
+- Run `bash install.sh --fix-perms` anytime if Radarr reports "folder not writable"
