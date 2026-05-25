@@ -51,7 +51,6 @@ install_base_packages() {
     ca-certificates \
     curl \
     gnupg \
-    lsb-release \
     libsqlite3-0 \
     sqlite3 \
     wget
@@ -116,30 +115,74 @@ EOF
 
 install_plex() {
   echo "Installing Plex Media Server..."
+
+  local arch
+  arch="$(dpkg --print-architecture 2>/dev/null || true)"
+  if [[ "$arch" != "amd64" ]]; then
+    echo "Plex only supports amd64 (detected: ${arch:-unknown}). Use Jellyfin instead."
+    return 1
+  fi
+
+  rm -f /etc/apt/sources.list.d/plex*.list /etc/apt/sources.list.d/plex*.sources
   install -d -m 0755 /etc/apt/keyrings
-  rm -f /etc/apt/sources.list.d/plexmediaserver.list
   curl -fsSL "${PLEX_KEY_URL}" | gpg --dearmor -o "${PLEX_KEYRING}"
-  echo "deb [arch=amd64 signed-by=${PLEX_KEYRING}] ${PLEX_REPO_URL} public main" \
-    >/etc/apt/sources.list.d/plexmediaserver.list
+  echo "deb [signed-by=${PLEX_KEYRING}] ${PLEX_REPO_URL} public main" \
+    >/etc/apt/sources.list.d/plex.list
 
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y plexmediaserver || {
-    echo "Plex install via repo failed. Trying direct .deb download..."
-    local plex_deb
+    echo "Repo install failed. Falling back to latest direct .deb..."
+    local plex_deb plex_url
     plex_deb="$(mktemp)"
-    curl -fsSL -o "${plex_deb}" \
-      "https://downloads.plex.tv/plex-media-server-new/1.41.6.9663-ce7c0d806/plexmediaserver_1.41.6.9663-ce7c0d806_amd64.deb"
-    dpkg -i "${plex_deb}" || DEBIAN_FRONTEND=noninteractive apt-get install -y -f
-    rm -f "${plex_deb}"
+
+    if command -v python3 &>/dev/null; then
+      plex_url=$(curl -fsSL https://plex.tv/api/downloads/1.json 2>/dev/null | \
+        python3 -c "
+import json,sys
+try:
+    d=json.load(sys.stdin)
+    for r in d['computer']['Linux']['releases']:
+        if r['distro']=='ubuntu' and 'x86_64' in r.get('build',''):
+            print(r['url'])
+            break
+except:
+    pass
+" 2>/dev/null)
+    fi
+
+    if [[ -z "$plex_url" ]]; then
+      echo "Could not fetch latest Plex version. Aborting."
+      rm -f "$plex_deb"
+      return 1
+    fi
+
+    curl -fsSL -o "$plex_deb" "$plex_url"
+    dpkg -i "$plex_deb" || DEBIAN_FRONTEND=noninteractive apt-get install -y -f
+    systemctl daemon-reload
+    rm -f "$plex_deb"
   }
+
+  systemctl enable --now plexmediaserver 2>/dev/null || true
 
   echo "Waiting for Plex to start..."
   for i in $(seq 1 15); do
-    if curl -s http://localhost:32400/myplex/account >/dev/null 2>&1; then
+    if systemctl is-active --quiet plexmediaserver 2>/dev/null; then
       break
     fi
     sleep 2
   done
+
+  if ! systemctl is-active --quiet plexmediaserver; then
+    echo "Plex service failed to start. Diagnostics:"
+    systemctl status plexmediaserver --no-pager 2>&1 | head -25
+    echo ""
+    echo "Journal logs:"
+    journalctl -u plexmediaserver -n 30 --no-pager 2>/dev/null || true
+    echo ""
+    echo "Common causes: unmet dependencies, missing libraries, or permission issues."
+    echo "Try: systemctl restart plexmediaserver && journalctl -u plexmediaserver -f"
+    return 1
+  fi
 
   claim_plex_server
 }
