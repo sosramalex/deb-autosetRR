@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "[deb-autorr] version d028586 (fix-local-outside-function)" >&2
+echo "[deb-autosetRR] version d028586 (fix-local-outside-function)" >&2
 
 show_banner() {
   echo "    _    _     ____   ___  ____    _    ____       ____  _____ ____          _   _   _ _____ ___  ____  ____  "
@@ -31,7 +31,7 @@ require_root() {
     echo "  bash install.sh"
     echo ""
     echo "Or, if sudo is already configured:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autorr/main/install.sh | sudo bash"
+    echo "  curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autosetRR/main/install.sh | sudo bash"
     exit 1
   fi
 }

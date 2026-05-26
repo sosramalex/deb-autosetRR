@@ -1,4 +1,4 @@
-# alsosar-deb-autorr
+# deb-autosetRR
 
 Interactive Debian installer for a movie automation stack:
 Radarr, Prowlarr, qBittorrent, Plex/Jellyfin — plus OMV storage layout support.
@@ -7,13 +7,13 @@ Radarr, Prowlarr, qBittorrent, Plex/Jellyfin — plus OMV storage layout support
 
 ```bash
 su -
-curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autorr/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autosetRR/main/install.sh -o install.sh
 bash install.sh
 ```
 
 Or with sudo:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autorr/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autosetRR/main/install.sh | sudo bash
 ```
 
 ## Menu
