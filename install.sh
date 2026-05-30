@@ -31,7 +31,7 @@ require_root() {
     echo "  bash install.sh"
     echo ""
     echo "Or, if sudo is already configured:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/alsosram/deb-autosetRR/main/install.sh | sudo bash"
+    echo "  curl -fsSL https://raw.githubusercontent.com/sosramalex/deb-autosetRR/main/install.sh | sudo bash"
     exit 1
   fi
 }
