@@ -11,13 +11,13 @@ Radarr, Prowlarr, qBittorrent, Plex/Jellyfin — plus OMV storage layout support
 
 ```bash
 su -
-curl -fsSL https://raw.githubusercontent.com/sosramalex/deb-autosetRR/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/sosaramosalexis/deb-autosetRR/main/install.sh -o install.sh
 bash install.sh
 ```
 
 Or with sudo:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sosramalex/deb-autosetRR/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/sosaramosalexis/deb-autosetRR/main/install.sh | sudo bash
 ```
 
 ## Menu
