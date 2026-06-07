@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/shell-blue?logo=bash&style=flat-square" alt="Shell">
+</p>
+
 # deb-autosetRR
 
 Interactive Debian installer for a movie automation stack:
