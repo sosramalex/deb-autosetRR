@@ -1,6 +1,7 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/shell-blue?logo=bash&style=flat-square" alt="Shell">
-</p>
+[![GitHub](https://img.shields.io/badge/GitHub-sosaramosalexis/deb-autosetRR-181717?logo=github)](https://github.com/sosaramosalexis/deb-autosetRR)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Shell](https://img.shields.io/badge/shell-blue?logo=gnu-bash)]()
+[![Platform](https://img.shields.io/badge/platform-Linux-blue)]()
 
 # deb-autosetRR
 
